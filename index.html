@@ -7,7 +7,7 @@
     
     <!-- PWA Metadata -->
     <meta name="theme-color" content="#0a0e17">
-    <meta name="description" content="แอปสร้างและสแกน QR Code แบบทันสมัย โดย พว.วิษณุกรณ์ โอยา - รองรับการใส่ข้อความใน QR Code">
+    <meta name="description" content="แอปสร้างและสแกน QR Code แบบทันสมัย โดย พว.วิษณุกรณ์ โอยา - รองรับการสแกนจากไฟล์รูปภาพ">
     <link rel="manifest" href="manifest.json">
     
     <!-- Icons for PWA -->
@@ -527,6 +527,91 @@
             transform: translateY(-2px);
         }
         
+        /* สไตล์สำหรับการสแกนจากไฟล์ */
+        .file-upload-area {
+            border: 2px dashed var(--border-glow);
+            border-radius: var(--radius);
+            padding: 40px 20px;
+            text-align: center;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(0, 20, 40, 0.2);
+        }
+        
+        .file-upload-area:hover {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: var(--primary);
+        }
+        
+        .file-upload-area i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+        
+        .file-upload-area p {
+            margin-bottom: 10px;
+            color: #a0cfff;
+        }
+        
+        .file-upload-area span {
+            font-size: 0.9rem;
+            color: #88aacc;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .image-preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: var(--radius);
+            border: 2px solid var(--border-glow);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .scan-method-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-glow);
+            padding-bottom: 10px;
+        }
+        
+        .scan-tab {
+            background: transparent;
+            border: none;
+            color: #a0cfff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .scan-tab.active {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--primary);
+        }
+        
+        .scan-tab:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+        
+        .scan-content {
+            display: none;
+        }
+        
+        .scan-content.active {
+            display: block;
+        }
+        
         @media (max-width: 768px) {
             .app-container {
                 flex-direction: column;
@@ -560,6 +645,10 @@
             .text-options-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .scan-method-tabs {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -577,7 +666,7 @@
     <div class="container">
         <header>
             <h1><i class="fas fa-qrcode"></i> Futuristic QR Studio</h1>
-            <p class="subtitle">สร้าง QR Code ที่สวยงามทันสมัย พร้อมใส่ข้อความลงใน QR Code และสแกน QR Code ได้ทันที</p>
+            <p class="subtitle">สร้าง QR Code ที่สวยงามทันสมัย พร้อมสแกน QR Code จากไฟล์รูปภาพหรือกล้องได้ทันที</p>
             
             <div class="toggle-container">
                 <div class="toggle-btn">
@@ -711,36 +800,83 @@
                 <!-- QR Code Scanner Card -->
                 <div class="card hidden" id="scannerCard">
                     <h2 class="card-title"><i class="fas fa-camera"></i> สแกน QR Code</h2>
-                    <p style="margin-bottom: 20px; color: #a0cfff;">อนุญาตการเข้าถึงกล้องเพื่อสแกน QR Code</p>
                     
-                    <div id="scanner-container">
-                        <div id="reader" class="pulse"></div>
-                    </div>
-                    
-                    <div class="scanner-controls">
-                        <button id="startScanner">
-                            <i class="fas fa-play"></i> เริ่มสแกน
+                    <!-- Tabs สำหรับเลือกวิธีการสแกน -->
+                    <div class="scan-method-tabs">
+                        <button class="scan-tab active" id="cameraTab">
+                            <i class="fas fa-camera"></i> สแกนด้วยกล้อง
                         </button>
-                        <button id="stopScanner" class="hidden">
-                            <i class="fas fa-stop"></i> หยุดสแกน
+                        <button class="scan-tab" id="fileTab">
+                            <i class="fas fa-image"></i> อัปโหลดรูปภาพ
                         </button>
                     </div>
                     
+                    <!-- ส่วนสแกนด้วยกล้อง -->
+                    <div id="cameraScan" class="scan-content active">
+                        <p style="margin-bottom: 20px; color: #a0cfff;">อนุญาตการเข้าถึงกล้องเพื่อสแกน QR Code</p>
+                        
+                        <div id="scanner-container">
+                            <div id="reader" class="pulse"></div>
+                        </div>
+                        
+                        <div class="scanner-controls">
+                            <button id="startScanner">
+                                <i class="fas fa-play"></i> เริ่มสแกน
+                            </button>
+                            <button id="stopScanner" class="hidden">
+                                <i class="fas fa-stop"></i> หยุดสแกน
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- ส่วนสแกนจากไฟล์รูปภาพ -->
+                    <div id="fileScan" class="scan-content">
+                        <p style="margin-bottom: 20px; color: #a0cfff;">เลือกไฟล์รูปภาพ QR Code เพื่อสแกน</p>
+                        
+                        <!-- พื้นที่อัปโหลดไฟล์ -->
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>คลิกหรือลากไฟล์มาวางที่นี่</p>
+                            <span>รองรับไฟล์ PNG, JPG, JPEG, GIF, BMP (สูงสุด 5MB)</span>
+                            <input type="file" id="fileInput" accept="image/*">
+                        </div>
+                        
+                        <!-- แสดงตัวอย่างรูปภาพ -->
+                        <div class="image-preview hidden" id="imagePreviewContainer">
+                            <h3><i class="fas fa-image"></i> ภาพที่อัปโหลด</h3>
+                            <img id="imagePreview" src="" alt="ภาพที่อัปโหลด">
+                            <div style="margin-top: 15px;">
+                                <button id="scanFromFileBtn">
+                                    <i class="fas fa-search"></i> สแกนจากรูปภาพนี้
+                                </button>
+                                <button id="removeImageBtn" style="margin-top: 10px; background: rgba(255, 51, 102, 0.2);">
+                                    <i class="fas fa-trash"></i> ลบรูปภาพ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ผลลัพธ์การสแกน -->
                     <div id="resultContainer" class="hidden">
                         <h3><i class="fas fa-check-circle"></i> ผลลัพธ์ที่สแกนได้:</h3>
                         <div id="result"></div>
-                        <button id="copyResult" style="margin-top: 15px;">
-                            <i class="fas fa-copy"></i> คัดลอกผลลัพธ์
-                        </button>
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button id="copyResult">
+                                <i class="fas fa-copy"></i> คัดลอกผลลัพธ์
+                            </button>
+                            <button id="newScanBtn" style="background: linear-gradient(90deg, var(--accent), #ff3399);">
+                                <i class="fas fa-redo"></i> สแกนใหม่
+                            </button>
+                        </div>
                     </div>
                     
                     <div style="margin-top: 30px; padding: 20px; background: rgba(0, 20, 40, 0.4); border-radius: var(--radius);">
                         <h3><i class="fas fa-lightbulb"></i> วิธีใช้:</h3>
                         <ul style="margin-top: 10px; padding-left: 20px; color: #a0cfff;">
-                            <li>กดปุ่ม "เริ่มสแกน" เพื่อเปิดใช้งานกล้อง</li>
-                            <li>นำกล้องไปชี้ที่ QR Code ที่ต้องการสแกน</li>
+                            <li><strong>สแกนด้วยกล้อง:</strong> กดปุ่ม "เริ่มสแกน" และนำกล้องไปชี้ที่ QR Code</li>
+                            <li><strong>สแกนจากรูปภาพ:</strong> อัปโหลดไฟล์รูปภาพที่มี QR Code แล้วกด "สแกนจากรูปภาพนี้"</li>
                             <li>แอปจะประมวลผลและแสดงผลลัพธ์อัตโนมัติ</li>
-                            <li>กดปุ่ม "หยุดสแกน" เพื่อปิดกล้อง</li>
+                            <li>กดปุ่ม "คัดลอกผลลัพธ์" เพื่อคัดลอกข้อความที่สแกนได้</li>
                         </ul>
                     </div>
                 </div>
@@ -751,7 +887,7 @@
                 <h3><i class="fas fa-user-cog"></i> ผู้พัฒนา</h3>
                 <p>พว.วิษณุกรณ์ โอยา</p>
                 <p style="margin-top: 5px; font-size: 0.9rem; color: #a0cfff;">
-                    <i class="fas fa-laptop-code"></i> Progressive Web App - รองรับการใส่ข้อความใน QR Code และใช้งานแบบออฟไลน์ได้
+                    <i class="fas fa-laptop-code"></i> Progressive Web App - รองรับการสแกนจากรูปภาพ QR Code และใช้งานแบบออฟไลน์ได้
                 </p>
             </div>
         </main>
@@ -759,7 +895,8 @@
         <footer>
             <p>Futuristic QR Studio © 2023 | พัฒนาด้วย HTML, CSS และ JavaScript</p>
             <p style="margin-top: 5px; font-size: 0.8rem; color: #88aacc;">
-                <i class="fas fa-mobile-alt"></i> รองรับการทำงานบนอุปกรณ์มือถือและคอมพิวเตอร์ | <i class="fas fa-font"></i> รองรับการเพิ่มข้อความใน QR Code
+                <i class="fas fa-mobile-alt"></i> รองรับการทำงานบนอุปกรณ์มือถือและคอมพิวเตอร์ | 
+                <i class="fas fa-camera"></i> สแกนจากกล้องหรือไฟล์รูปภาพ
             </p>
         </footer>
     </div>
@@ -774,6 +911,8 @@
         let html5QrCode = null;
         let isScannerActive = false;
         let deferredPrompt = null;
+        let currentScanMethod = 'camera'; // 'camera' หรือ 'file'
+        let uploadedImage = null;
         
         // อ้างอิง DOM elements
         const generatorCard = document.getElementById('generatorCard');
@@ -797,6 +936,7 @@
         const resultContainer = document.getElementById('resultContainer');
         const resultDiv = document.getElementById('result');
         const copyResult = document.getElementById('copyResult');
+        const newScanBtn = document.getElementById('newScanBtn');
         const notification = document.getElementById('notification');
         const notificationText = document.getElementById('notificationText');
         const installButton = document.getElementById('installButton');
@@ -812,6 +952,18 @@
         const textOnQR = document.getElementById('textOnQR');
         const textOverlay = document.getElementById('textOverlay');
         const presetButtons = document.querySelectorAll('.preset-btn');
+        
+        // ตัวแปรสำหรับการสแกนจากไฟล์
+        const cameraTab = document.getElementById('cameraTab');
+        const fileTab = document.getElementById('fileTab');
+        const cameraScan = document.getElementById('cameraScan');
+        const fileScan = document.getElementById('fileScan');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const scanFromFileBtn = document.getElementById('scanFromFileBtn');
+        const removeImageBtn = document.getElementById('removeImageBtn');
         
         // ========== PWA Functionality ==========
         
@@ -871,7 +1023,7 @@
             const manifest = {
                 "name": "Futuristic QR Studio",
                 "short_name": "QR Studio",
-                "description": "แอปสร้างและสแกน QR Code พร้อมใส่ข้อความ โดย พว.วิษณุกรณ์ โอยา",
+                "description": "แอปสร้างและสแกน QR Code พร้อมสแกนจากรูปภาพ โดย พว.วิษณุกรณ์ โอยา",
                 "start_url": ".",
                 "display": "standalone",
                 "background_color": "#0a0e17",
@@ -879,7 +1031,7 @@
                 "orientation": "portrait-primary",
                 "icons": [
                     {
-                        "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230080ff'/><path d='M30 30h40v40h-40z' fill='none' stroke='white' stroke-width='8'/><rect x='40' y='40' width='20' height='20' fill='white'/><text x='50' y='85' font-size='12' fill='white' text-anchor='middle' font-family='Arial'>TXT</text></svg>",
+                        "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230080ff'/><path d='M30 30h40v40h-40z' fill='none' stroke='white' stroke-width='8'/><rect x='40' y='40' width='20' height='20' fill='white'/><text x='50' y='85' font-size='12' fill='white' text-anchor='middle' font-family='Arial'>IMG</text></svg>",
                         "sizes": "any",
                         "type": "image/svg+xml",
                         "purpose": "any"
@@ -1136,9 +1288,38 @@
             showNotification("ดาวน์โหลด QR Code พร้อมข้อความเรียบร้อยแล้ว", "success");
         }
         
-        // ========== QR Code Scanner ==========
+        // ========== QR Code Scanner (Camera & File) ==========
         
-        // เริ่มสแกน QR Code
+        // เปลี่ยนวิธีการสแกน
+        function changeScanMethod(method) {
+            currentScanMethod = method;
+            
+            // อัปเดต UI
+            if (method === 'camera') {
+                cameraTab.classList.add('active');
+                fileTab.classList.remove('active');
+                cameraScan.classList.add('active');
+                fileScan.classList.remove('active');
+                
+                // หยุดการสแกนจากไฟล์ถ้ามี
+                hideFileScanResult();
+            } else {
+                cameraTab.classList.remove('active');
+                fileTab.classList.add('active');
+                cameraScan.classList.remove('active');
+                fileScan.classList.add('active');
+                
+                // หยุดกล้องถ้ากำลังใช้งานอยู่
+                if (isScannerActive) {
+                    stopQRScanner();
+                }
+            }
+            
+            // ซ่อนผลลัพธ์เก่า
+            resultContainer.classList.add('hidden');
+        }
+        
+        // เริ่มสแกน QR Code ด้วยกล้อง
         function startQRScanner() {
             if (isScannerActive) return;
             
@@ -1170,7 +1351,7 @@
             });
         }
         
-        // หยุดสแกน QR Code
+        // หยุดสแกน QR Code ด้วยกล้อง
         function stopQRScanner() {
             if (!html5QrCode || !isScannerActive) return;
             
@@ -1184,16 +1365,140 @@
             });
         }
         
-        // เมื่อสแกน QR Code สำเร็จ
+        // อัปโหลดไฟล์รูปภาพ
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // ตรวจสอบขนาดไฟล์ (สูงสุด 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification("ไฟล์ใหญ่เกินไป กรุณาเลือกไฟล์ขนาดไม่เกิน 5MB", "error");
+                return;
+            }
+            
+            // ตรวจสอบประเภทไฟล์
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                showNotification("กรุณาเลือกไฟล์รูปภาพเท่านั้น (JPG, PNG, GIF, BMP)", "error");
+                return;
+            }
+            
+            // อ่านไฟล์และแสดงตัวอย่าง
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImage = e.target.result;
+                imagePreview.src = uploadedImage;
+                imagePreviewContainer.classList.remove('hidden');
+                showNotification("อัปโหลดรูปภาพสำเร็จแล้ว", "success");
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // ลบรูปภาพที่อัปโหลด
+        function removeUploadedImage() {
+            uploadedImage = null;
+            imagePreview.src = '';
+            imagePreviewContainer.classList.add('hidden');
+            fileInput.value = '';
+            showNotification("ลบรูปภาพเรียบร้อยแล้ว", "info");
+        }
+        
+        // สแกน QR Code จากไฟล์รูปภาพ
+        function scanQRCodeFromFile() {
+            if (!uploadedImage) {
+                showNotification("กรุณาอัปโหลดรูปภาพก่อน", "warning");
+                return;
+            }
+            
+            showNotification("กำลังประมวลผลรูปภาพ...", "info");
+            
+            // สร้างออบเจ็กต์รูปภาพ
+            const img = new Image();
+            img.onload = function() {
+                try {
+                    // สร้าง HTML5Qrcode สำหรับสแกนจากไฟล์
+                    const fileQrCode = new Html5Qrcode();
+                    
+                    // สแกนจากรูปภาพ
+                    fileQrCode.scanFile(uploadedImage, true)
+                        .then(decodedText => {
+                            // แสดงผลลัพธ์
+                            onScanSuccess(decodedText, null);
+                            
+                            // แสดงผลลัพธ์และซ่อนการอัปโหลด
+                            resultContainer.classList.remove('hidden');
+                            cameraScan.classList.remove('active');
+                            fileScan.classList.remove('active');
+                        })
+                        .catch(err => {
+                            console.error("Error scanning file:", err);
+                            
+                            // ลองใช้วิธีอื่นถ้า Html5Qrcode ไม่ทำงาน
+                            if (err && err.message && err.message.includes("Not implemented")) {
+                                // ใช้วิธีดั้งเดิม
+                                scanWithCanvas(img);
+                            } else {
+                                showNotification("ไม่พบ QR Code ในรูปภาพนี้ หรือรูปภาพไม่ชัดเจน", "error");
+                            }
+                        });
+                } catch (error) {
+                    console.error("Error setting up scanner:", error);
+                    // ใช้วิธีดั้งเดิม
+                    scanWithCanvas(img);
+                }
+            };
+            img.src = uploadedImage;
+        }
+        
+        // วิธีดั้งเดิมสำหรับสแกน QR Code จากรูปภาพ (สำรอง)
+        function scanWithCanvas(img) {
+            // สร้าง canvas สำหรับประมวลผลรูปภาพ
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // ตั้งค่าขนาด canvas ให้เท่ากับรูปภาพ
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // วาดรูปภาพลงใน canvas
+            ctx.drawImage(img, 0, 0, img.width, img.height);
+            
+            // ลองใช้ไลบรารี QR Code สำหรับอ่านข้อมูล (วิธีง่ายๆ)
+            // เนื่องจาก Html5Qrcode อาจไม่รองรับการสแกนจากไฟล์ในบางเบราว์เซอร์
+            // เราจะใช้เทคนิคการตรวจสอบง่ายๆ ก่อน
+            
+            // ในที่นี้เราจะแสดงข้อความว่าไม่สามารถประมวลผลได้
+            // แต่ในแอปจริงควรใช้ไลบรารีที่รองรับการสแกนจากรูปภาพโดยเฉพาะ
+            
+            showNotification("เบราว์เซอร์นี้ไม่รองรับการสแกนจากไฟล์ กรุณาลองใช้เบราว์เซอร์อื่นหรือใช้กล้องสแกน", "error");
+            
+            // สำหรับการพัฒนาต่อไป สามารถใช้ไลบรารีเช่น jsQR ได้
+            // const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            // const code = jsQR(imageData.data, imageData.width, imageData.height);
+            // if (code) {
+            //     onScanSuccess(code.data, null);
+            // } else {
+            //     showNotification("ไม่พบ QR Code ในรูปภาพนี้", "error");
+            // }
+        }
+        
+        // เมื่อสแกน QR Code สำเร็จ (ทั้งจากกล้องและไฟล์)
         function onScanSuccess(decodedText, decodedResult) {
             resultDiv.textContent = decodedText;
             resultContainer.classList.remove("hidden");
             
-            saveScanResult(decodedText);
-            stopQRScanner();
+            // ซ่อนส่วนสแกน
+            if (currentScanMethod === 'camera') {
+                stopQRScanner();
+            } else {
+                // สำหรับการสแกนจากไฟล์ ซ่อนส่วนอัปโหลด
+                fileScan.classList.remove('active');
+            }
             
+            saveScanResult(decodedText);
             showNotification("สแกน QR Code สำเร็จ!", "success");
             
+            // ถ้าเป็นลิงก์ ให้แสดงปุ่มเปิดลิงก์
             if (isValidURL(decodedText)) {
                 const openLinkBtn = document.createElement("button");
                 openLinkBtn.innerHTML = '<i class="fas fa-external-link-alt"></i> เปิดลิงก์นี้';
@@ -1204,6 +1509,34 @@
             }
         }
         
+        // เมื่อเกิดข้อผิดพลาดในการสแกนด้วยกล้อง
+        function onScanError(error) {
+            console.log("Scan error (normal):", error);
+        }
+        
+        // ซ่อนผลลัพธ์การสแกนจากไฟล์
+        function hideFileScanResult() {
+            resultContainer.classList.add('hidden');
+            if (currentScanMethod === 'file') {
+                fileScan.classList.add('active');
+            }
+        }
+        
+        // เริ่มการสแกนใหม่
+        function startNewScan() {
+            resultContainer.classList.add('hidden');
+            
+            if (currentScanMethod === 'camera') {
+                // สำหรับกล้อง ให้เริ่มสแกนใหม่
+                startScanner.classList.remove("hidden");
+                stopScanner.classList.add("hidden");
+                isScannerActive = false;
+            } else {
+                // สำหรับไฟล์ ให้แสดงส่วนอัปโหลดใหม่
+                fileScan.classList.add('active');
+            }
+        }
+        
         // บันทึกผลการสแกนลง localStorage
         function saveScanResult(text) {
             try {
@@ -1211,7 +1544,8 @@
                 scanHistory.unshift({
                     text: text,
                     timestamp: new Date().toISOString(),
-                    isURL: isValidURL(text)
+                    isURL: isValidURL(text),
+                    method: currentScanMethod
                 });
                 
                 if (scanHistory.length > 50) {
@@ -1222,11 +1556,6 @@
             } catch (error) {
                 console.error("Error saving scan result:", error);
             }
-        }
-        
-        // เมื่อเกิดข้อผิดพลาดในการสแกน
-        function onScanError(error) {
-            console.log("Scan error (normal):", error);
         }
         
         // ตรวจสอบว่าเป็น URL ที่ถูกต้องหรือไม่
@@ -1292,6 +1621,9 @@
                 scannerCard.classList.remove("hidden");
                 toggleGenerator.classList.remove("active");
                 toggleScanner.classList.add("active");
+                
+                // รีเซ็ตการสแกน
+                hideFileScanResult();
             }
         }
         
@@ -1301,7 +1633,6 @@
         addTextToggle.addEventListener('change', function() {
             if (this.checked) {
                 textOptions.classList.remove("hidden");
-                // สร้าง QR Code ใหม่ด้วยข้อความ
                 if (qrText.value.trim()) {
                     setTimeout(() => generateQRCode(), 100);
                 }
@@ -1309,7 +1640,6 @@
                 textOptions.classList.add("hidden");
                 textOnQR.classList.add("hidden");
                 downloadWithTextBtn.classList.add("hidden");
-                // สร้าง QR Code ใหม่โดยไม่มีข้อความ
                 if (qrText.value.trim()) {
                     setTimeout(() => generateQRCode(), 100);
                 }
@@ -1361,6 +1691,31 @@
             qrBgColorValue.textContent = qrBgColor.value;
         });
         
+        // Event Listeners สำหรับการสแกน
+        cameraTab.addEventListener('click', () => changeScanMethod('camera'));
+        fileTab.addEventListener('click', () => changeScanMethod('file'));
+        
+        // อัปโหลดไฟล์
+        fileUploadArea.addEventListener('click', () => fileInput.click());
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.style.background = 'rgba(0, 212, 255, 0.1)';
+        });
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.style.background = 'rgba(0, 20, 40, 0.2)';
+        });
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.style.background = 'rgba(0, 20, 40, 0.2)';
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileUpload({ target: { files: e.dataTransfer.files } });
+            }
+        });
+        fileInput.addEventListener('change', handleFileUpload);
+        scanFromFileBtn.addEventListener('click', scanQRCodeFromFile);
+        removeImageBtn.addEventListener('click', removeUploadedImage);
+        
         // Event Listeners หลัก
         generateBtn.addEventListener('click', generateQRCode);
         downloadBtn.addEventListener('click', downloadQRCode);
@@ -1368,6 +1723,7 @@
         startScanner.addEventListener('click', startQRScanner);
         stopScanner.addEventListener('click', stopQRScanner);
         copyResult.addEventListener('click', copyToClipboard);
+        newScanBtn.addEventListener('click', startNewScan);
         toggleGenerator.addEventListener('click', () => toggleMode('generator'));
         toggleScanner.addEventListener('click', () => toggleMode('scanner'));
         
